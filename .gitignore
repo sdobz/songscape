@@ -1,3 +1,11 @@
+.DS_Store
+env
+songscape/rgplot/tmp
+*.png
+*.wav
+*.mp4
+*.mp3
+
 *.py[cod]
 
 # C extensions

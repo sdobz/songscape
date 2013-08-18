@@ -1,0 +1,3 @@
+[submodule "songscape/spectrum/spectrum-gist"]
+	path = songscape/spectrum/spectrum-gist
+	url = https://gist.github.com/4118062.git

@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Make the environment location
+[ -d env ] || mkdir env
+[ -f env/.empty ] ||  touch env/.empty
+virtualenv --no-site-packages env
+
+env/bin/pip install -r requirements.pip -q
