@@ -4,20 +4,23 @@ from scipy.io import wavfile
 import numpy as np
 from subprocess import call
 import Image, ImageDraw, ImageChops, ImageEnhance
+from os import path
 
 import os, math, sys
 
 FPS = 25.0
 
-nFFT = 256
+
+IMAGE_SIZE = (1280, 720)
+nFFT = IMAGE_SIZE[0]
 SAMPLE_SIZE = 2
 CHANNELS = 2
 RATE = 44100
 MAX_Y = 2.0**(SAMPLE_SIZE * 8 - 1)
-BACKGROUND = (0,0,0)
+BACKGROUND = (0,0,0,255)
 LINE = (255, 255, 255)
 LINE_START = (255, 0, 0)
-LINE_END = (0, 255, 0)
+LINE_END = (0, 255, 255)
 
 LINE_HEIGHT = 180
 
@@ -64,7 +67,7 @@ def main():
         print('Usage: spectrum.py <input file> <(optional) output file>')
     if arg_len >= 2:
         input_filename = sys.argv[1]
-        output_filename = input_filename
+        output_filename = input_filename + '.mp4'
     if arg_len == 3:
         output_filename = sys.argv[2]
 
@@ -78,27 +81,32 @@ def main():
     L = data[0]
     R = data[1]
 
-    im = Image.new("RGB", (1280, 720), BACKGROUND)
+    im = Image.new("RGBA", IMAGE_SIZE, BACKGROUND)
     draw = ImageDraw.Draw(im)
 
-    line = Image.new("RGB", (1, LINE_HEIGHT))
+    line = Image.new("RGBA", (1, LINE_HEIGHT))
     line_draw = ImageDraw.Draw(line)
     for y in xrange(LINE_HEIGHT):
-        line_draw.point((0,y), fill = hsv2rgb(float(y)/LINE_HEIGHT*120,1,1))
+        fill = hsv2rgb(float(y)/LINE_HEIGHT*120,1,1)
+        # fill = interpolate(float(y)/LINE_HEIGHT, LINE_START, LINE_END)
+        line_draw.point((0,y), fill = fill)
 
     try:
         for i, fft in enumerate(build_fft(L)):
-            x_offset = 2
-            y_offset = 1
+            x_offset = 0
+            y_offset = 5
             width, height = im.size
             im = ImageChops.offset(im, x_offset, -y_offset)
-            #enhancer = ImageEnhance.Brightness(im)
-            #im = enhancer.enhance(.998)
+
+            enhancer = ImageEnhance.Brightness(im)
+            im = enhancer.enhance(.98)
 
             #pix = im.load()
             draw = ImageDraw.Draw(im)
             draw.rectangle((0, 0, x_offset, height), BACKGROUND)
             draw.rectangle((0, height + y_offset, width, height), BACKGROUND)
+
+            prev = None
             for x, y in enumerate(fft):
                 y = math.sqrt(abs(y.real) * 1e2) * 10
                 y = min(LINE_HEIGHT, y) 
@@ -109,17 +117,19 @@ def main():
                 from_box = (0, LINE_HEIGHT - int(y), 1, LINE_HEIGHT)
                 region = line.crop(from_box)
 
-                to_box = (x, height - int(y) - (nFFT - x), x+1, height - (nFFT - x))
+                x = (x + nFFT/2) % nFFT
+                x += (im.size[0] - nFFT) / 2
+                # y_bot = height - (nFFT/2 - x/2) # Slanty
+                y_bot = height
+
+                to_box = (x, y_bot - int(y), x+1, y_bot)
 
                 #to_box = (0, height - int(y) - (nFFT - x), 1, height - (nFFT - x))
                 im.paste(region, to_box)
 
-                #draw.point((x+200, height-y-150), fill=(255,255,255))
-                
-                #pix[x+200, height-y-150] = (255,255,255)
-            #if i > 100:
-            #    break
-
+                if prev:
+                    draw.line((x-1, y_bot - prev, x, y_bot - y), fill=(0,0,0,0))
+                prev = y
             im.save('tmp/%07d.png' % i)
     except KeyboardInterrupt:
         pass
@@ -133,8 +143,9 @@ def main():
             "-r", str(FPS),
             output_filename])
 
-    os.system('rm tmp/*')
-    os.unline(input_filename + '.wav')
+    if  path.exists(output_filename):
+        os.system('rm tmp/*')
+    os.unlink(input_filename + '.wav')
 
 if __name__ == "__main__":
     main()
