@@ -195,7 +195,7 @@ func initGL() error {
 	gl.MatrixMode(gl.PROJECTION)
 	glu.Perspective(0, 1, 0, 1)
 	// Above line causes error, clear it below
-	glh.CheckGLError();
+	glh.CheckGLError()
 
 	errno := gl.Init()
 	if errno != gl.NO_ERROR {

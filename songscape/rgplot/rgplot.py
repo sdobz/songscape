@@ -11,7 +11,7 @@ import os, math, sys
 FPS = 25.0
 
 
-IMAGE_SIZE = (1280, 720)
+IMAGE_SIZE = (640, 480)
 nFFT = IMAGE_SIZE[0]
 SAMPLE_SIZE = 2
 CHANNELS = 2
@@ -52,6 +52,7 @@ def hsv2rgb(h, s, v):
     return r, g, b
 
 def build_fft(samples):
+    samples_old = samples
     samples = samples/MAX_Y
     n_samples = len(samples)
     N = int(RATE/FPS)
@@ -59,6 +60,8 @@ def build_fft(samples):
     for frame in xrange(0, frames):
         if frame % 10 == 0:
             print('%s/%s: %s%%' % (frame, frames, frame*100/frames))
+        if frame > 10:
+            break
         yield np.fft.fft(samples[frame*N:(frame+1)*N], nFFT)
 
 def main():
@@ -108,7 +111,10 @@ def main():
 
             prev = None
             for x, y in enumerate(fft):
-                y = math.sqrt(abs(y.real) * 1e2) * 10
+                # y = math.sqrt(abs(y.real) * 1e2) * 10
+                # y = abs(y.real) * 10
+                y = math.log(abs(y.real) + 1) * 35
+                # print(y)
                 y = min(LINE_HEIGHT, y) 
                 #fill=hsv2rgb((i*3) % 360, 1, 1)
                 #fill = (255-int(y*1.3),)*3
